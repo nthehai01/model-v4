@@ -21,21 +21,13 @@ class Dataset:
 
             return text
 
-        def preprocess_content(cell):
-            # Clean the source
-            cell.source = clean_text(cell.source)
 
-            # Tokenize the source
-            tokens = self.tokenizer.encode(cell.source)
-            cell.tokens = tokens
-
-            return cell
-
-
+        tqdm.pandas(desc="Clean text")
+        df["source"] = df["source"].progress_apply(clean_text)
+        
         df['tokens'] = 0.
-
-        tqdm.pandas(desc="Preprocessing dataset")
-        df = df.progress_apply(preprocess_content, axis=1)
+        embeddings = self.tokenizer.encode(list(df.source), batch_size=16)
+        df['tokens'] = [e for e in embeddings]
 
         df = df.drop(['source', 'rank', 'ancestor_id'], axis=1)
 
@@ -102,6 +94,4 @@ class Dataset:
         dataset = dataset.batch(batch_size)
 
         return dataset
-
-
-    
+        
