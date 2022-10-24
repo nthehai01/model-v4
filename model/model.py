@@ -18,5 +18,7 @@ class Model(tf.keras.Model):
 
         counts = tf.concat([count_by_type, cell_count], axis=-1)  # (..., max_cells, 2)
         out = tf.multiply(out, counts)  # (..., max_cells, 2)
+
+        out = tf.math.round(out)
         
         return out
