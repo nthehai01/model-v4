@@ -9,12 +9,21 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 class Dataset:
-    def __init__(self, model_path, d_model):
+    def __init__(self, model_path, d_model, max_len=128):
         self.tokenizer = SentenceTransformer(model_path)
         self.d_model = d_model
+        self.max_len = max_len
 
 
     def preprocess_dataset(self, df):
+        def truncate_text(text, max_len):
+            words = text.split()
+            if len(words) > max_len:
+                half_len = max_len // 2
+                words = words[:half_len] + words[-half_len:]
+
+            return " ".join(words)
+
         def clean_text(text):
             text = str(text)
             text = text.lower().strip()
@@ -76,6 +85,10 @@ class Dataset:
         has_heading_3 =  md["source"].progress_apply(lambda x: x[:len(heading_3)] == heading_3) * 1.0
         df.loc[md.index, "has_heading_3"] = has_heading_3
         del md
+
+        # truncate text
+        tqdm.pandas(desc="Truncate text")
+        df["source"] = df["source"].progress_apply(lambda x: truncate_text(x, self.max_len))
 
         # clean text
         tqdm.pandas(desc="Clean text")
