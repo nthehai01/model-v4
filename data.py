@@ -35,12 +35,14 @@ class Dataset:
         code = df[df.cell_type == "code"]
         code_rank = code.groupby("id").cumcount()
         df.loc[code.index, "code_rank"] = code_rank
+        del code, code_rank
 
         # markdown rank
         df["md_rank"] = 0.
         md = df[df.cell_type == "markdown"]
         md_rank = md.groupby("id")["pct_rank"].transform(lambda arr: arr.argsort().argsort())
         df.loc[md.index, "md_rank"] = md_rank
+        del md, md_rank
 
         # {cell_type}_rank
         df["cell_type_rank"] = df["code_rank"] + df["md_rank"]
@@ -55,6 +57,7 @@ class Dataset:
         tqdm.pandas(desc="Detect heading 1")
         has_heading_1 =  md["source"].progress_apply(lambda x: x[:len(heading_1)] == heading_1) * 1.0
         df.loc[md.index, "has_heading_1"] = has_heading_1
+        del md
 
         # detect heading 2
         df["has_heading_2"] = 0.
@@ -63,6 +66,7 @@ class Dataset:
         tqdm.pandas(desc="Detect heading 2")
         has_heading_2 =  md["source"].progress_apply(lambda x: x[:len(heading_2)] == heading_2) * 1.0
         df.loc[md.index, "has_heading_2"] = has_heading_2
+        del md
 
         # detect heading 3
         df["has_heading_3"] = 0.
@@ -71,6 +75,7 @@ class Dataset:
         tqdm.pandas(desc="Detect heading 3")
         has_heading_3 =  md["source"].progress_apply(lambda x: x[:len(heading_3)] == heading_3) * 1.0
         df.loc[md.index, "has_heading_3"] = has_heading_3
+        del md
 
         # clean text
         tqdm.pandas(desc="Clean text")
@@ -80,6 +85,7 @@ class Dataset:
         df['tokens'] = 0.
         embeddings = self.tokenizer.encode(list(df.source), batch_size=16)
         df['tokens'] = [e for e in embeddings]
+        del embeddings
 
         # counting
         df["count_by_type"] = df.groupby(["id", "cell_type"])["cell_id"].transform("count") * 1.0
@@ -87,8 +93,6 @@ class Dataset:
 
         # additional features
         df["additional_features"] = df[["is_code", "is_md", "code_rank", "has_heading_1", "has_heading_2", "has_heading_3"]].values.tolist()
-
-        
         
         df = df[["id", "tokens", "additional_features", "count_by_type", "cell_count", "target"]]
 
@@ -176,6 +180,8 @@ class Dataset:
             tokens, additional_features, count_by_type, cell_count, 
             target
         ))
+        del tokens, additional_features, count_by_type, cell_count, target
+        
         dataset = dataset.map(map_func)
         dataset = dataset.batch(batch_size)
 
