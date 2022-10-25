@@ -95,9 +95,10 @@ class Dataset:
         df["source"] = df["source"].progress_apply(clean_text)
         
         # get tokens
+        embeddings = self.tokenizer.encode(list(df.source), batch_size=16).tolist()
+        df.drop(['source'], axis=1, inplace=True)
         df['tokens'] = 0.
-        embeddings = self.tokenizer.encode(list(df.source), batch_size=16)
-        df['tokens'] = [e for e in embeddings]
+        df['tokens'] = embeddings
         del embeddings
 
         # counting
@@ -127,6 +128,8 @@ class Dataset:
                     out[count, :value_shape[0], :value_shape[1]] = value
 
                 count += 1
+                
+                del value
 
             return out
         
@@ -139,6 +142,7 @@ class Dataset:
             (num_train, max_cells, self.d_model),
             dtype="float32"
         )
+        df.drop(['tokens'], axis=1, inplace=True)
 
         # additional_features
         additional_features_len = len(df.additional_features.iloc[0])
@@ -146,6 +150,7 @@ class Dataset:
             "additional_features",
             (num_train, max_cells, additional_features_len),
         )
+        df.drop(['additional_features'], axis=1, inplace=True)
 
         # count_by_type
         count_by_type = create_tensor(
@@ -153,6 +158,7 @@ class Dataset:
             (num_train, max_cells),
         )
         count_by_type = np.expand_dims(count_by_type, axis=-1)
+        df.drop(['count_by_type'], axis=1, inplace=True)
 
         # cell_count
         cell_count = create_tensor(
@@ -160,6 +166,7 @@ class Dataset:
             (num_train, max_cells),
         )
         cell_count = np.expand_dims(cell_count, axis=-1)
+        df.drop(['cell_count'], axis=1, inplace=True)
         
         # target
         target_len = len(df.target.iloc[0])
@@ -168,6 +175,7 @@ class Dataset:
             (num_train, max_cells, target_len), 
             dtype="float32"
         )
+        df.drop(['target'], axis=1, inplace=True)
 
         return tokens, additional_features, count_by_type, cell_count, target
 
@@ -188,6 +196,7 @@ class Dataset:
         df = self.preprocess_dataset(df)
         
         tokens, additional_features, count_by_type, cell_count, target = self.get_notebook_token(df, max_cells, cell_pad)
+        del df
 
         dataset = tf.data.Dataset.from_tensor_slices((
             tokens, additional_features, count_by_type, cell_count, 
