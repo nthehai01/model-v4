@@ -17,7 +17,7 @@ class Dataset:
 
     def preprocess_dataset(self, df):
         def truncate_text(text, max_len):
-            words = text.split()
+            words = str(text).split()
             if len(words) > max_len:
                 half_len = max_len // 2
                 words = words[:half_len] + words[-half_len:]
